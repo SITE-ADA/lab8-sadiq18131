@@ -12,12 +12,12 @@ import org.springframework.context.annotation.Configuration;
         info = @Info(
                 title = "Student Service API",
                 version = "v1",
-                description = "CRUD API for managing students.",
-                contact = @Contact(name = "WM2 Backend Course"),
-                license = @License(name = "Educational Use")
+                description = "Tələbə məlumatlarının yaradılması, oxunması, yenilənməsi, silinməsi və ada görə axtarışı üçün API.",
+                contact = @Contact(name = "WM2 Backend kursu"),
+                license = @License(name = "Tədris məqsədli istifadə")
         ),
         servers = {
-                @Server(url = "http://localhost:9090", description = "Local server")
+                @Server(url = "http://localhost:9090", description = "Lokal student-service serveri")
         }
 )
 public class OpenApiConfig {

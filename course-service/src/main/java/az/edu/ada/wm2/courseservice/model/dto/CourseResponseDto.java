@@ -23,4 +23,7 @@ public class CourseResponseDto {
 
     @Schema(description = "Credit count", example = "4")
     private Integer credits;
+
+    @Schema(description = "Optional prerequisite course id", example = "1", nullable = true)
+    private Long prerequisiteCourseId;
 }

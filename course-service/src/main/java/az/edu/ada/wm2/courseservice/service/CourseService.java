@@ -3,6 +3,8 @@ package az.edu.ada.wm2.courseservice.service;
 import az.edu.ada.wm2.courseservice.client.StudentFeignClient;
 import az.edu.ada.wm2.courseservice.exception.CourseNotFoundException;
 import az.edu.ada.wm2.courseservice.exception.EnrollmentAlreadyExistsException;
+import az.edu.ada.wm2.courseservice.exception.InvalidPrerequisiteException;
+import az.edu.ada.wm2.courseservice.exception.PrerequisiteNotCompletedException;
 import az.edu.ada.wm2.courseservice.exception.RemoteStudentNotFoundException;
 import az.edu.ada.wm2.courseservice.exception.StudentServiceCommunicationException;
 import az.edu.ada.wm2.courseservice.model.dto.CourseRequestDto;
@@ -39,10 +41,13 @@ public class CourseService {
     private String studentServiceBaseUrl;
 
     public CourseResponseDto createCourse(CourseRequestDto requestDto) {
+        validatePrerequisiteCourseExists(requestDto.getPrerequisiteCourseId());
+
         Course course = Course.builder()
                 .title(requestDto.getTitle())
                 .code(requestDto.getCode())
                 .credits(requestDto.getCredits())
+                .prerequisiteCourseId(requestDto.getPrerequisiteCourseId())
                 .build();
 
         Course savedCourse = courseRepository.save(course);
@@ -67,6 +72,8 @@ public class CourseService {
         existingCourse.setTitle(requestDto.getTitle());
         existingCourse.setCode(requestDto.getCode());
         existingCourse.setCredits(requestDto.getCredits());
+        validatePrerequisiteForCourseUpdate(id, requestDto.getPrerequisiteCourseId());
+        existingCourse.setPrerequisiteCourseId(requestDto.getPrerequisiteCourseId());
 
         Course updatedCourse = courseRepository.save(existingCourse);
         return toCourseResponseDto(updatedCourse);
@@ -79,13 +86,14 @@ public class CourseService {
 
     public EnrollmentResponseDto enrollStudent(Long courseId, Long studentId) {
         log.debug("Enrolling student {} into course {}", studentId, courseId);
-        findCourseOrThrow(courseId);
+        Course course = findCourseOrThrow(courseId);
 
         if (enrollmentRepository.existsByCourseIdAndStudentId(courseId, studentId)) {
             throw new EnrollmentAlreadyExistsException(courseId, studentId);
         }
 
         validateStudentWithFeign(studentId);
+        validatePrerequisiteForEnrollment(course, studentId);
 
         Enrollment enrollment = Enrollment.builder()
                 .courseId(courseId)
@@ -117,6 +125,27 @@ public class CourseService {
                 .toList();
 
         return new CourseStudentsResponseDto(course.getId(), course.getTitle(), students);
+    }
+
+    private void validatePrerequisiteCourseExists(Long prerequisiteCourseId) {
+        if (prerequisiteCourseId != null && !courseRepository.existsById(prerequisiteCourseId)) {
+            throw new InvalidPrerequisiteException("Prerequisite course not found with id: " + prerequisiteCourseId);
+        }
+    }
+
+    private void validatePrerequisiteForCourseUpdate(Long courseId, Long prerequisiteCourseId) {
+        if (prerequisiteCourseId != null && prerequisiteCourseId.equals(courseId)) {
+            throw new InvalidPrerequisiteException("A course cannot be its own prerequisite.");
+        }
+        validatePrerequisiteCourseExists(prerequisiteCourseId);
+    }
+
+    private void validatePrerequisiteForEnrollment(Course course, Long studentId) {
+        Long prerequisiteCourseId = course.getPrerequisiteCourseId();
+        if (prerequisiteCourseId != null
+                && !enrollmentRepository.existsByCourseIdAndStudentId(prerequisiteCourseId, studentId)) {
+            throw new PrerequisiteNotCompletedException(studentId, course.getId(), prerequisiteCourseId);
+        }
     }
 
     private void validateStudentWithFeign(Long studentId) {
@@ -152,7 +181,8 @@ public class CourseService {
                 course.getId(),
                 course.getTitle(),
                 course.getCode(),
-                course.getCredits()
+                course.getCredits(),
+                course.getPrerequisiteCourseId()
         );
     }
 }

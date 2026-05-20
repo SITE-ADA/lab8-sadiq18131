@@ -34,6 +34,20 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(InvalidPrerequisiteException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidPrerequisite(
+            InvalidPrerequisiteException ex,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(PrerequisiteNotCompletedException.class)
+    public ResponseEntity<ApiErrorResponse> handlePrerequisiteNotCompleted(
+            PrerequisiteNotCompletedException ex,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(StudentServiceCommunicationException.class)
     public ResponseEntity<ApiErrorResponse> handleStudentServiceCommunication(
             StudentServiceCommunicationException ex,

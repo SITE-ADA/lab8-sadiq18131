@@ -15,6 +15,7 @@ import az.edu.ada.wm2.courseservice.model.entity.Enrollment;
 import az.edu.ada.wm2.courseservice.repository.CourseRepository;
 import az.edu.ada.wm2.courseservice.repository.EnrollmentRepository;
 import feign.FeignException;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -89,6 +90,7 @@ public class CourseService {
         Enrollment enrollment = Enrollment.builder()
                 .courseId(courseId)
                 .studentId(studentId)
+                .enrollmentDate(LocalDate.now())
                 .build();
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
 
@@ -96,6 +98,7 @@ public class CourseService {
                 savedEnrollment.getId(),
                 savedEnrollment.getCourseId(),
                 savedEnrollment.getStudentId(),
+                savedEnrollment.getEnrollmentDate(),
                 "Student enrolled successfully."
         );
     }

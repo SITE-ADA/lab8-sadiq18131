@@ -10,7 +10,9 @@ import az.edu.ada.wm2.courseservice.exception.StudentServiceCommunicationExcepti
 import az.edu.ada.wm2.courseservice.model.dto.CourseRequestDto;
 import az.edu.ada.wm2.courseservice.model.dto.CourseResponseDto;
 import az.edu.ada.wm2.courseservice.model.dto.CourseStudentsResponseDto;
+import az.edu.ada.wm2.courseservice.model.dto.EnrolledCourseDto;
 import az.edu.ada.wm2.courseservice.model.dto.EnrollmentResponseDto;
+import az.edu.ada.wm2.courseservice.model.dto.StudentCoursesResponseDto;
 import az.edu.ada.wm2.courseservice.model.dto.StudentDto;
 import az.edu.ada.wm2.courseservice.model.entity.Course;
 import az.edu.ada.wm2.courseservice.model.entity.Enrollment;
@@ -127,6 +129,28 @@ public class CourseService {
         return new CourseStudentsResponseDto(course.getId(), course.getTitle(), students);
     }
 
+    public List<StudentCoursesResponseDto> getCoursesByStudentName(String name) {
+        String normalizedName = name == null ? "" : name.trim();
+        if (normalizedName.isBlank()) {
+            return List.of();
+        }
+
+        List<StudentDto> students = searchStudentsByNameWithFeign(normalizedName);
+        return students.stream()
+                .map(student -> new StudentCoursesResponseDto(
+                        student,
+                        getEnrolledCoursesForStudent(student.getId())
+                ))
+                .toList();
+    }
+
+    private List<EnrolledCourseDto> getEnrolledCoursesForStudent(Long studentId) {
+        return enrollmentRepository.findByStudentId(studentId)
+                .stream()
+                .map(this::toEnrolledCourseDto)
+                .toList();
+    }
+
     private void validatePrerequisiteCourseExists(Long prerequisiteCourseId) {
         if (prerequisiteCourseId != null && !courseRepository.existsById(prerequisiteCourseId)) {
             throw new InvalidPrerequisiteException("Prerequisite course not found with id: " + prerequisiteCourseId);
@@ -159,6 +183,15 @@ public class CourseService {
         }
     }
 
+    private List<StudentDto> searchStudentsByNameWithFeign(String name) {
+        try {
+            log.debug("Searching students by name '{}' via Feign", name);
+            return studentFeignClient.searchStudentsByName(name);
+        } catch (FeignException ex) {
+            throw new StudentServiceCommunicationException("Could not search students from student-service.");
+        }
+    }
+
     private StudentDto fetchStudentWithRestTemplate(Long studentId) {
         String url = studentServiceBaseUrl + "/api/v1/students/" + studentId;
         try {
@@ -174,6 +207,19 @@ public class CourseService {
     private Course findCourseOrThrow(Long id) {
         log.debug("Looking up course {}", id);
         return courseRepository.findById(id).orElseThrow(() -> new CourseNotFoundException(id));
+    }
+
+    private EnrolledCourseDto toEnrolledCourseDto(Enrollment enrollment) {
+        Course course = findCourseOrThrow(enrollment.getCourseId());
+        return new EnrolledCourseDto(
+                enrollment.getId(),
+                course.getId(),
+                course.getTitle(),
+                course.getCode(),
+                course.getCredits(),
+                course.getPrerequisiteCourseId(),
+                enrollment.getEnrollmentDate()
+        );
     }
 
     private CourseResponseDto toCourseResponseDto(Course course) {

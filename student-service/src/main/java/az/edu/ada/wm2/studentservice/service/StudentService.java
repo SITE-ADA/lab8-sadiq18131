@@ -39,6 +39,18 @@ public class StudentService {
         return toResponseDto(student);
     }
 
+    public List<StudentResponseDto> searchStudentsByName(String name) {
+        String normalizedName = name == null ? "" : name.trim();
+        if (normalizedName.isBlank()) {
+            return List.of();
+        }
+
+        return studentRepository.searchByName(normalizedName)
+                .stream()
+                .map(this::toResponseDto)
+                .toList();
+    }
+
     public StudentResponseDto updateStudent(Long id, StudentRequestDto requestDto) {
         Student existingStudent = findStudentOrThrow(id);
 

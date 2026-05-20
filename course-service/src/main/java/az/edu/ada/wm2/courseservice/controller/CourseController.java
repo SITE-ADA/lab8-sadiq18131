@@ -4,6 +4,7 @@ import az.edu.ada.wm2.courseservice.model.dto.CourseRequestDto;
 import az.edu.ada.wm2.courseservice.model.dto.CourseResponseDto;
 import az.edu.ada.wm2.courseservice.model.dto.CourseStudentsResponseDto;
 import az.edu.ada.wm2.courseservice.model.dto.EnrollmentResponseDto;
+import az.edu.ada.wm2.courseservice.model.dto.StudentCoursesResponseDto;
 import az.edu.ada.wm2.courseservice.service.CourseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -40,6 +42,15 @@ public class CourseController {
     @Operation(summary = "Get all courses", description = "Returns all courses.")
     public ResponseEntity<List<CourseResponseDto>> getAllCourses() {
         return ResponseEntity.ok(courseService.getAllCourses());
+    }
+
+    @GetMapping("/by-student")
+    @Operation(
+            summary = "Get courses by student name",
+            description = "Searches students by name in student-service and returns their enrolled courses."
+    )
+    public ResponseEntity<List<StudentCoursesResponseDto>> getCoursesByStudentName(@RequestParam String name) {
+        return ResponseEntity.ok(courseService.getCoursesByStudentName(name));
     }
 
     @GetMapping("/{id}")
